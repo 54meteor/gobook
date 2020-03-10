@@ -1,17 +1,32 @@
 package main
-
-import "fmt"
-
-	const (
-		i = 1<<iota
-		j = 3<<iota
-		k
-		l
-	)
-	func main() {
-		fmt.Println("i=",i)
-		fmt.Println("j=",j)
-		fmt.Println("k=",k)
-		fmt.Println("l=",l)
+import (
+	"fmt"
+	"strings"
+)
+func main() {
+	result := StringToLower("AbcdefGHijklMNOPqrstUVWxyz", processCase)
+	fmt.Println(result)
+	result = StringToLower2("AbcdefGHijklMNOPqrstUVWxyz", processCase)
+	fmt.Println(result)
+}
+//处理字符串，奇数偶数依次显示为大小写
+func processCase(str string) string {
+	result := ""
+	for i, value := range str {
+		if i%2 == 0 {
+			result += strings.ToUpper(string(value))
+		} else {
+			result += strings.ToLower(string(value))
+		}
 	}
-
+	return result
+}
+func StringToLower(str string, f func(string) string) string {
+	fmt.Printf("%T \n", f)
+	return f(str)
+}
+type caseFunc func(string) string // 声明了一个函数类型。通过type关键字，caseFunc会形成一种新的类型。
+func StringToLower2(str string, f caseFunc) string {
+	fmt.Printf("%T \n", f)
+	return f(str)
+}

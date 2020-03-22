@@ -2,4 +2,4 @@ module main
 
 go 1.14
 
-require github.com/tealeg/xlsx v1.0.5 // indirect
+require github.com/tealeg/xlsx v1.0.5

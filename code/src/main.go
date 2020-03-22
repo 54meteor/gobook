@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/tealeg/xlsx"
 	"fmt"
+	"os"
 	"strings"
 )
 var lines = [5]int{2,4,6,8,10}
@@ -12,13 +13,39 @@ type  ora struct {
 	Content string
 }
 
+type oraList struct{
+	list []ora
+}
+
 func main(){
-	excelFileName := "1-教务处-教务-莹莹.xlsx"
-	fmt.Println("正在读取文件" + excelFileName)
-	oraList := readXlsx(excelFileName)
-	fmt.Println("文件读取完成，开始写入文件")
-	writingXlsx(oraList)
+	path := "xls"
+	fileList := readDir(path)
+	var newList []oraList
+	for key,file := range fileList{
+		fmt.Println("正在读取文件" + file)
+		list := readXlsx(path,file,key)
+		newList = append(newList,list)
+		fmt.Println("文件读取完成")
+	}
+	writingXlsx(newList)
 	fmt.Println("文件写入成功")
+}
+
+func readDir(path string) []string {
+	f,err := os.OpenFile(path,os.O_RDONLY,os.ModeDir)
+	if err != nil{
+		fmt.Println(err.Error())
+	}
+	defer f.Close()
+	fileInfo , _ := f.Readdir(-1)
+
+	fileList := []string {}
+	for _,info := range fileInfo {
+		if !info.IsDir(){
+			fileList = append(fileList,info.Name())
+		}
+	}
+	return fileList
 }
 
 func getPm(filename string) []ora{
@@ -31,42 +58,46 @@ func getPm(filename string) []ora{
 	return listOra
 }
 
-func readXlsx(filename string) []ora {
-	//var listOra []ora
+func readXlsx(path,filename string,key int) oraList {
+
 	var listOra = getPm(filename)
-	xlFile, err := xlsx.OpenFile(filename)
+	sepa := string(os.PathSeparator)
+	xlFile, err := xlsx.OpenFile(path + sepa + filename)
 	if err != nil {
 		fmt.Printf("open failed: %s\n", err)
 	}
 	sheets := xlFile.Sheets
-	//for _, sheet := range xlFile.Sheets {
 	sheet := sheets[0]
 	rows := sheet.Rows
 	weeksRow := rows[1]
 	weeks := weeksRow.Cells
-		for i := 0;i < len(lines);i++{
-			title := rows[lines[i]].Cells
-			content := rows[lines[i] + 1].Cells
-			for j := 0;j < len(title);j++{
-				tmpOra := ora{}
-				if len(title[j].String()) != 0 {
-					var build strings.Builder
-					build.WriteString(title[j].String())
-					build.WriteString(" ")
-					build.WriteString(weeks[j].String())
-					title := build.String()
+
+	for i := 0;i < len(lines);i++{
+		title := rows[lines[i]].Cells
+		content := rows[lines[i] + 1].Cells
+		for j := 0;j < len(title);j++{
+			tmpOra := ora{}
+			if len(title[j].String()) != 0 {
+				var build strings.Builder
+				build.WriteString(title[j].String())
+				build.WriteString(" ")
+				build.WriteString(weeks[j].String())
+				title := build.String()
+				if key == 0 {
 					titles = append(titles, title)
-					//tmpOra.Title = title
-					tmpOra.Content = content[j].String()
-					listOra = append(listOra, tmpOra)
 				}
+				tmpOra.Content = content[j].String()
+				listOra = append(listOra, tmpOra)
 			}
 		}
-	return listOra
+
+	}
+	oraList := oraList{listOra}
+	return oraList
 }
 
 
-func writingXlsx(oraList []ora) {
+func writingXlsx(oraList []oraList) {
 	var file *xlsx.File
 	var sheet *xlsx.Sheet
 	var row *xlsx.Row
@@ -80,26 +111,31 @@ func writingXlsx(oraList []ora) {
 	}
 	sheet.SetColWidth(0,3,10)
 	sheet.SetColWidth(4,40,30)
-	titleRow := sheet.AddRow();
+	titleRow := sheet.AddRow()
 	titleCell := titleRow.AddCell()
 	titleCell.Value = "校区工作进度表"
-	row = sheet.AddRow()
-	rowContent := sheet.AddRow()
-	//row.SetHeightCM(0.5)
-	rowContent.SetHeightCM(10)
-	style := xlsx.NewStyle()
-	ali := *xlsx.DefaultAlignment()
-	ali.WrapText = true
-	ali.Vertical = "top"
-	style.Alignment = ali
-	for i := 0;i < len(titles);i++{
-		cell = row.AddCell()
-		cell.Value = titles[i]
-		cellContent := rowContent.AddCell()
-		cellContent.Value = oraList[i].Content
-		cellContent.SetStyle(style)
+	for key,list := range oraList{
+		if key == 0{
+			row = sheet.AddRow()
+		}
+		rowContent := sheet.AddRow()
+		rowContent.SetHeightCM(10)
+		style := xlsx.NewStyle()
+		ali := *xlsx.DefaultAlignment()
+		ali.WrapText = true
+		ali.Vertical = "top"
+		style.Alignment = ali
+		for i := 0;i < len(titles);i++{
+			if key == 0{
+				cell = row.AddCell()
+				cell.Value = titles[i]
+			}
+			cellContent := rowContent.AddCell()
+			cellContent.Value = list.list[i].Content
+			cellContent.SetStyle(style)
+		}
 	}
-	err = file.Save("2019-_-_-2019-_-_Lag延时数据.xlsx")
+	err = file.Save("统计数据.xlsx")
 	if err != nil {
 		fmt.Printf(err.Error())
 	}

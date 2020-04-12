@@ -1,20 +1,31 @@
 package main
-
 import (
 	"fmt"
-	"github.com/garyburd/redigo/redis" //此行代码文中后面的例子不会给出，请注意
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-xorm/xorm"
+	"time"
 )
-
+//定义与表结构一致的结构体
+type User struct {
+	Id int64
+	Name string
+	Salt string
+	Age int
+	Passwd string `xorm:"varchar(32)"`
+	Created time.Time `xorm:"created"`
+	Updated time.Time `xorm:"updated"`
+}
 func main() {
-	host := "127.0.0.1"
-	port := "6379"
-	protocol := "tcp"
-
-	redis, err := redis.Dial(protocol, host+":"+port)
-	if err != nil {
-		fmt.Println("Connect to redis error", err)
+	//连接MySQL数据库
+	engine, err := xorm.NewEngine("mysql", "root:@tcp(127.0.0.1:3306)/testdb?charset=utf8")
+	if err != nil{
+		fmt.Println(err)
 		return
 	}
-	fmt.Println("Connect to redis succeed")
-	defer redis.Close()
+	engine.ShowSQL(true)//设置在控制台输出SQL语句，默认为false
+	var users []User//声明结构体切片
+	err = engine.Find(&users)//查询一条数据
+	fmt.Println(users)
 }
+
+
